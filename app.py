@@ -365,36 +365,56 @@ def render_overview_visualizations(overview_df: pd.DataFrame) -> None:
     st.write("**Visual Summary**")
     chart_cols = st.columns(2)
 
-    metric_df = overview_df.melt(
-        id_vars=["label"],
-        value_vars=["avg_overall_score", "avg_correctness", "avg_groundedness"],
-        var_name="metric",
-        value_name="score",
-    ).dropna(subset=["score"])
-    metric_df["metric"] = metric_df["metric"].map(
-        {
-            "avg_overall_score": "Overall",
-            "avg_correctness": "Correctness",
-            "avg_groundedness": "Groundedness",
-        }
-    )
+    metric_config = {
+        "avg_overall_score": {"label": "Overall", "max_score": 10},
+        "avg_correctness": {"label": "Correctness", "max_score": 5},
+        "avg_groundedness": {"label": "Groundedness", "max_score": 5},
+    }
+    metric_rows: List[Dict[str, Any]] = []
+    for _, row in overview_df.iterrows():
+        for column_name, config in metric_config.items():
+            raw_score = row.get(column_name)
+            if not isinstance(raw_score, (int, float)):
+                continue
+            metric_rows.append(
+                {
+                    "label": row["label"],
+                    "metric": config["label"],
+                    "raw_score": float(raw_score),
+                    "max_score": config["max_score"],
+                    "normalized_pct": round((float(raw_score) / config["max_score"]) * 100, 1),
+                }
+            )
+    metric_df = pd.DataFrame(metric_rows)
 
     with chart_cols[0]:
         if not metric_df.empty:
             score_chart = px.bar(
                 metric_df,
                 x="label",
-                y="score",
+                y="normalized_pct",
                 color="metric",
                 barmode="group",
-                title="Average Judge Scores by Algorithm",
+                title="Normalized Average Judge Scores by Algorithm",
+                custom_data=["raw_score", "max_score"],
+            )
+            score_chart.update_traces(
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Metric=%{fullData.name}<br>"
+                    "Normalized=%{y:.1f}%<br>"
+                    "Raw=%{customdata[0]:.2f}/%{customdata[1]}<extra></extra>"
+                )
             )
             score_chart.update_layout(
                 xaxis_title="Algorithm",
-                yaxis_title="Score",
+                yaxis_title="Normalized score (%)",
                 legend_title="Metric",
             )
             st.plotly_chart(score_chart, use_container_width=True)
+            st.caption(
+                "This chart uses normalized percentages so `overall_score` (0-10) is comparable with the 0-5 metrics."
+            )
 
     with chart_cols[1]:
         latency_df = overview_df.dropna(subset=["avg_latency_total_s"]).copy()
