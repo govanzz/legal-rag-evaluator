@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 
@@ -140,6 +142,11 @@ def build_app_dataset() -> Dict[str, Any]:
             for judge in judges.values()
             if isinstance(judge.get("groundedness"), (int, float))
         ]
+        total_latencies = [
+            record.get("latency", {}).get("total")
+            for record in rows.values()
+            if isinstance(record.get("latency", {}).get("total"), (int, float))
+        ]
 
         overview_rows.append(
             {
@@ -156,6 +163,9 @@ def build_app_dataset() -> Dict[str, Any]:
                 else None,
                 "avg_groundedness": round(sum(groundedness_scores) / len(groundedness_scores), 2)
                 if groundedness_scores
+                else None,
+                "avg_latency_total_s": round(sum(total_latencies) / len(total_latencies), 2)
+                if total_latencies
                 else None,
             }
         )
@@ -348,6 +358,162 @@ def render_pipeline_card(
         render_judge_block(judge_record or {})
 
 
+def render_overview_visualizations(overview_df: pd.DataFrame) -> None:
+    if overview_df.empty:
+        return
+
+    st.write("**Visual Summary**")
+    chart_cols = st.columns(2)
+
+    metric_df = overview_df.melt(
+        id_vars=["label"],
+        value_vars=["avg_overall_score", "avg_correctness", "avg_groundedness"],
+        var_name="metric",
+        value_name="score",
+    ).dropna(subset=["score"])
+    metric_df["metric"] = metric_df["metric"].map(
+        {
+            "avg_overall_score": "Overall",
+            "avg_correctness": "Correctness",
+            "avg_groundedness": "Groundedness",
+        }
+    )
+
+    with chart_cols[0]:
+        if not metric_df.empty:
+            score_chart = px.bar(
+                metric_df,
+                x="label",
+                y="score",
+                color="metric",
+                barmode="group",
+                title="Average Judge Scores by Algorithm",
+            )
+            score_chart.update_layout(
+                xaxis_title="Algorithm",
+                yaxis_title="Score",
+                legend_title="Metric",
+            )
+            st.plotly_chart(score_chart, use_container_width=True)
+
+    with chart_cols[1]:
+        latency_df = overview_df.dropna(subset=["avg_latency_total_s"]).copy()
+        if not latency_df.empty:
+            latency_chart = px.scatter(
+                latency_df,
+                x="avg_latency_total_s",
+                y="avg_overall_score",
+                size="questions",
+                color="label",
+                hover_data=["coverage_pct", "judged"],
+                title="Accuracy vs Latency",
+            )
+            latency_chart.update_layout(
+                xaxis_title="Average total latency (s)",
+                yaxis_title="Average overall score",
+                showlegend=False,
+            )
+            st.plotly_chart(latency_chart, use_container_width=True)
+
+
+def render_performance_visualizations(
+    analytics_df: pd.DataFrame,
+    per_pipeline_df: pd.DataFrame,
+) -> None:
+    if analytics_df.empty or per_pipeline_df.empty:
+        return
+
+    st.write("**Visual Insights**")
+    chart_cols = st.columns(2)
+
+    with chart_cols[0]:
+        score_distribution_df = per_pipeline_df.dropna(subset=["overall_score"]).copy()
+        if not score_distribution_df.empty:
+            distribution_chart = px.box(
+                score_distribution_df,
+                x="algorithm",
+                y="overall_score",
+                color="algorithm",
+                points="outliers",
+                title="Score Distribution by Algorithm",
+            )
+            distribution_chart.update_layout(
+                xaxis_title="Algorithm",
+                yaxis_title="Overall score",
+                showlegend=False,
+            )
+            st.plotly_chart(distribution_chart, use_container_width=True)
+
+    with chart_cols[1]:
+        disagreement_plot_df = analytics_df.dropna(subset=["score_gap"]).copy()
+        disagreement_plot_df = disagreement_plot_df.sort_values(
+            ["score_gap", "avg_score"], ascending=[False, False]
+        ).head(10)
+        if not disagreement_plot_df.empty:
+            disagreement_plot_df["question_label"] = disagreement_plot_df.apply(
+                lambda row: f"{row['case_citation']} | {str(row['question'])[:65]}",
+                axis=1,
+            )
+            disagreement_chart = px.bar(
+                disagreement_plot_df,
+                x="score_gap",
+                y="question_label",
+                color="avg_score",
+                orientation="h",
+                title="Top Question Disagreements",
+                color_continuous_scale="Blues",
+            )
+            disagreement_chart.update_layout(
+                xaxis_title="Score gap between best and worst model",
+                yaxis_title="Question",
+                yaxis={"categoryorder": "total ascending"},
+            )
+            st.plotly_chart(disagreement_chart, use_container_width=True)
+
+
+def render_selected_question_visualizations(comparison_df: pd.DataFrame) -> None:
+    if comparison_df.empty:
+        return
+
+    st.write("**Visual Comparison**")
+    chart_cols = st.columns(2)
+
+    with chart_cols[0]:
+        score_df = comparison_df.dropna(subset=["judge_overall"]).copy()
+        if not score_df.empty:
+            question_score_chart = px.bar(
+                score_df,
+                x="algorithm",
+                y="judge_overall",
+                color="verdict",
+                title="Judge Score for Selected Question",
+            )
+            question_score_chart.update_layout(
+                xaxis_title="Algorithm",
+                yaxis_title="Overall score",
+            )
+            st.plotly_chart(question_score_chart, use_container_width=True)
+
+    with chart_cols[1]:
+        latency_df = comparison_df.dropna(subset=["latency_total_s"]).copy()
+        if not latency_df.empty:
+            latency_chart = go.Figure(
+                go.Bar(
+                    x=latency_df["algorithm"],
+                    y=latency_df["latency_total_s"],
+                    marker_color="#4C78A8",
+                    text=latency_df["latency_total_s"].round(2),
+                    textposition="auto",
+                )
+            )
+            latency_chart.update_layout(
+                title="Latency for Selected Question",
+                xaxis_title="Algorithm",
+                yaxis_title="Latency (s)",
+            )
+            st.plotly_chart(latency_chart, use_container_width=True)
+
+
 def render_question_performance_section(
     question_df: pd.DataFrame,
     selected_pipelines: List[str],
@@ -377,6 +543,8 @@ def render_question_performance_section(
     top_metrics[1].metric("All models judged", len(full_coverage_df))
     top_metrics[2].metric(f"All models strong (>={strong_threshold:.1f})", len(excellent_df))
     top_metrics[3].metric(f"All models weak (<={weak_threshold:.1f})", len(weak_df))
+
+    render_performance_visualizations(analytics_df, per_pipeline_df)
 
     insight_tab_1, insight_tab_2 = st.tabs(
         ["Across All Selected Models", "Per-Model Breakdown"]
@@ -576,6 +744,7 @@ def main() -> None:
             use_container_width=True,
             hide_index=True,
         )
+        render_overview_visualizations(display_df)
     else:
         st.info("No pipeline overview data found.")
 
@@ -627,7 +796,9 @@ def main() -> None:
         )
 
     st.markdown("### Snapshot")
-    st.dataframe(pd.DataFrame(comparison_rows), use_container_width=True, hide_index=True)
+    comparison_df = pd.DataFrame(comparison_rows)
+    st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+    render_selected_question_visualizations(comparison_df)
 
     st.markdown("### Side-by-Side Comparison")
     if not selected_pipelines:
