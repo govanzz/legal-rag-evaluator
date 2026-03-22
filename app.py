@@ -368,7 +368,6 @@ def render_overview_visualizations(overview_df: pd.DataFrame) -> None:
     metric_config = {
         "avg_overall_score": {"label": "Overall", "max_score": 10},
         "avg_correctness": {"label": "Correctness", "max_score": 5},
-        "avg_groundedness": {"label": "Groundedness", "max_score": 5},
     }
     metric_rows: List[Dict[str, Any]] = []
     for _, row in overview_df.iterrows():
@@ -413,7 +412,7 @@ def render_overview_visualizations(overview_df: pd.DataFrame) -> None:
             )
             st.plotly_chart(score_chart, use_container_width=True)
             st.caption(
-                "This chart uses normalized percentages so `overall_score` (0-10) is comparable with the 0-5 metrics."
+                "This chart uses normalized percentages so `overall_score` (0-10) is comparable with `correctness` (0-5)."
             )
 
     with chart_cols[1]:
@@ -758,7 +757,6 @@ def main() -> None:
                     "coverage_pct",
                     "avg_overall_score",
                     "avg_correctness",
-                    "avg_groundedness",
                 ]
             ].rename(columns={"label": "algorithm"}),
             use_container_width=True,
