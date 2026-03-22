@@ -12,20 +12,18 @@ import streamlit as st
 
 BASE_DIR = Path(__file__).resolve().parent
 RAW_RESULT_SOURCES = [
-    BASE_DIR / "evaluation_results_cohere.json",
-    BASE_DIR / "legal_rag_naive_results.json",
+    BASE_DIR / "evaluation_results_all_pipelines.json",
 ]
 JUDGE_RESULT_DIRS = [
     BASE_DIR / "llm_judge_results",
-    BASE_DIR / "llm_judge_results_naive",
 ]
 PIPELINE_LABELS = {
     "baseline": "Baseline",
-    "advanced_a_dense_rerank_section": "Advanced A: Dense + Rerank (Section)",
-    "advanced_b_hybrid_rerank_section": "Advanced B: Hybrid + Rerank (Section)",
-    "advanced_b_hybrid_rerank_paragraph": "Advanced B: Hybrid + Rerank (Paragraph)",
-    "naive_dense_chunk_x": "Naive Dense (Section)",
-    "naive_dense_chunk_y": "Naive Dense (Paragraph)",
+    "naive_section": "Naive Dense (Section)",
+    "naive_paragraph": "Naive Dense (Paragraph)",
+    "advanced_dense_rerank_section": "Advanced Dense + Rerank (Section)",
+    "advanced_hybrid_rerank_section": "Advanced Hybrid + Rerank (Section)",
+    "advanced_hybrid_rerank_paragraph": "Advanced Hybrid + Rerank (Paragraph)",
 }
 
 
