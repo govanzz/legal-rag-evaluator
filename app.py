@@ -723,8 +723,9 @@ def main() -> None:
     if selected_case != "All":
         filtered_df = filtered_df[filtered_df["case_citation"] == selected_case]
     if search_text.strip():
+        search_query = search_text.strip()
         filtered_df = filtered_df[
-            filtered_df["question"].str.contains(search_text.strip(), case=False, na=False)
+            filtered_df["question"].str.contains(search_query, case=False, na=False, regex=False)
         ]
 
     if selected_pipelines:

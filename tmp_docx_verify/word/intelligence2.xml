@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<int2:intelligence xmlns:int2="http://schemas.microsoft.com/office/intelligence/2020/intelligence" xmlns:oel="http://schemas.microsoft.com/office/2019/extlst"><int2:observations><int2:textHash int2:hashCode="scp7RQ6s0ecLLd" int2:id="S3PlfP4z"><int2:state int2:value="Rejected" int2:type="spell"/></int2:textHash></int2:observations><int2:intelligenceSettings/><int2:onDemandWorkflows/></int2:intelligence>
