@@ -12,9 +12,11 @@ import streamlit as st
 
 BASE_DIR = Path(__file__).resolve().parent
 RAW_RESULT_SOURCES = [
+    BASE_DIR / "fixed_evaluation_results_all_pipelines.json",
     BASE_DIR / "evaluation_results_all_pipelines.json",
 ]
 JUDGE_RESULT_DIRS = [
+    BASE_DIR / "llm_judge_results_fixed",
     BASE_DIR / "llm_judge_results",
 ]
 PIPELINE_LABELS = {
@@ -666,7 +668,7 @@ def render_question_performance_section(
 def main() -> None:
     st.set_page_config(
         page_title="Legal RAG Comparator",
-        page_icon="⚖️",
+        page_icon="scales",
         layout="wide",
     )
 

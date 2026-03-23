@@ -55,12 +55,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--input",
-        default=str(BASE_DIR / "evaluation_results_cohere.json"),
+        default=str(BASE_DIR / "fixed_evaluation_results_all_pipelines.json"),
         help="Path to the evaluation results JSON file.",
     )
     parser.add_argument(
         "--output",
-        default=str(BASE_DIR / "llm_judge_results"),
+        default=str(BASE_DIR / "llm_judge_results_fixed"),
         help="Directory to save per-pipeline detailed judge results.",
     )
     parser.add_argument(
