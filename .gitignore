@@ -3,3 +3,7 @@ __pycache__/
 .env
 .DS_Store
 *.ipynb
+tmp_docx_extract/
+tmp_docx_verify/
+~$*.docx
+*.before_llm_judge_edit.docx
